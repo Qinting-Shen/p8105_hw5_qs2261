@@ -52,51 +52,45 @@ The spaghetti plot shows that the observations on each subject in control group 
 ### Peoblem 3
 #### Create a function
 ```{r}
-one_samp = function(n= 30, mu = 0, sigma = 5){
+set.seed(1)
+one_samp = function(n= 30, mu, sigma = 5){
   
-  samp_df = tibble(
-    x = rnorm(n, mean = mu, sd = sigma),
+  sim_data = tibble(
+    x = rnorm(n = n, mean = mu, sd = sigma),
   )
   
-  broom::tidy(t.test(samp_df, mu = 0, alternative = "two.sided"))
+  broom::tidy(t.test(sim_data, mu = 0, alternative = "two.sided"))
 }
 ```
 
-#### mu = 0
+#### mu = 0, repeat 5000 times
 ```{r}
-ttest_results_df = 
-  expand_grid(
-    sample_size = 30,
-    iter = 1:5000
-  ) |> 
-  mutate(
-    estimate_df = map(sample_size, one_samp)
-  ) |> 
-  unnest(estimate_df)
-
-ttest_results_df |>
+ttest_results_df =
+  rerun(5000, one_samp(mu = 0)) |> 
+  bind_rows() |> 
   select(estimate, p.value)
 ```
 
 #### Repeat for mu = 1,2,3,4,5,6
-```{r}
-t_test_multiple_means = function(n = 30, sigma = 5, population_mean) {
+```{r warning=FALSE}
+mu_list = 
+  list(
+    "mu = 1" = 1,
+    "mu = 2" = 2,
+    "mu = 3" = 3,
+    "mu = 4" = 4,
+    "mu = 5" = 5,
+    "mu = 6" = 6
+  )
 
-  perform_t_test = function(mu) {
-    sample_df = 
-      tibble(
-        rnorm(n, mean = population_mean, sd = sigma),
-    ) 
-    
-  t_test_result = broom::tidy(t.test(sample_df, mu = mu, alternative = "two.sided")) 
-  }
-  
-  t_test_results = map(population_mean, perform_t_test) 
+output = vector("list", length = 6)
+
+for (i in 1:6) {
+  output[[i]] = rerun(5000, one_samp(mu = mu_list[[i]])) |> 
+    bind_rows() |> 
+    select(estimate, p.value)
   
 }
-
-population_mean = c(1, 2, 3, 4, 5, 6)
-
-multiple_mu_results = t_test_multiple_means(n = 30, sigma = 5, population_mean)
 ```
+
 
