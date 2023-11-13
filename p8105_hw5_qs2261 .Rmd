@@ -73,46 +73,15 @@ ttest_results_df =
 
 #### Repeat for mu = 1,2,3,4,5,6
 ```{r warning=FALSE}
-mu_list = 
-  list(
-    "mu = 1" = 1,
-    "mu = 2" = 2,
-    "mu = 3" = 3,
-    "mu = 4" = 4,
-    "mu = 5" = 5,
-    "mu = 6" = 6
-  )
-
-output = vector("list", length = 6)
-
-for (i in 1:6) {
-  output[[i]] = rerun(5000, one_samp(mu = mu_list[[i]])) |> 
-    bind_rows() |> 
-    select(estimate, p.value)
-  
-}
-```
-
-```{r}
-ttest_result = 
-  expand_grid(
-    true_mean = c(1, 2, 3, 4, 5, 6),
-    iter = 1:5000
-) |> 
-  mutate(
-    estimate_df = map(true_mean, one_samp))|> 
-  unnest(estimate_df) |> 
-  select(true_mean, estimate, p.value)
-```
-????why
-```{r}
 ttest_result = 
  tibble(true_mean = c(1, 2, 3, 4, 5, 6)
         ) |> 
   mutate(
-    estimate_df = map(.x = true_mean, ~ rerun(10, one_samp(.x))))|> 
+    output_list = map(.x = true_mean, ~ rerun(10, one_samp(mu = .x))),
+    estimate_df = map(output_list, bind_rows)
+    )|>  
   unnest(estimate_df) |> 
-  select(true_mean, estimate, p.value)
+  select(-output_list)
 ```
 
 
