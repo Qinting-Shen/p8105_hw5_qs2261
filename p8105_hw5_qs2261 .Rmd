@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(rvest)
+library(purrr)
 ```
 
 ### Peoblem 2
@@ -32,6 +33,7 @@ longi_df = map(filename, importdata) |>
 tidy_plot =
   longi_df |> 
   separate(file, into = c("folder","arm","underscore","subject_id","csv"), sep = c(5,8,9,11)) |> 
+  mutate(arm_id = paste(arm, subject_id)) |> 
   select(-folder, -underscore, - csv) |> 
   select(arm, subject_id, everything()) |> 
   pivot_longer(
@@ -39,8 +41,7 @@ tidy_plot =
     names_to = "week",
     names_prefix = "week_",
     values_to = "observation" )|> 
-  ggplot(aes(x = week, y = observation, group = subject_id, color = subject_id))+
-    facet_grid(~arm)+
+  ggplot(aes(x = week, y = observation, group = arm_id, color = arm))+
     geom_line()
 
 tidy_plot
@@ -58,8 +59,7 @@ one_samp = function(n= 30, mu, sigma = 5){
   sim_data = tibble(
     x = rnorm(n = n, mean = mu, sd = sigma),
   )
-  
-  broom::tidy(t.test(sim_data, mu = 0, alternative = "two.sided"))
+  broom::tidy(t.test(sim_data, mu = mu)) 
 }
 ```
 
@@ -92,5 +92,61 @@ for (i in 1:6) {
   
 }
 ```
+
+```{r}
+ttest_result = 
+  expand_grid(
+    true_mean = c(1, 2, 3, 4, 5, 6),
+    iter = 1:5000
+) |> 
+  mutate(
+    estimate_df = map(true_mean, one_samp))|> 
+  unnest(estimate_df) |> 
+  select(true_mean, estimate, p.value)
+```
+????why
+```{r}
+ttest_result = 
+ tibble(true_mean = c(1, 2, 3, 4, 5, 6)
+        ) |> 
+  mutate(
+    estimate_df = map(.x = true_mean, ~ rerun(10, one_samp(.x))))|> 
+  unnest(estimate_df) |> 
+  select(true_mean, estimate, p.value)
+```
+
+
+#### Plot
+```{r}
+results_df = 
+output
+  mutate(
+    estimate_df = 
+      map2(sample_size, population_mean, \(n, population_mean) t_test_multiple_means(n = 30, sigma = 5, population_mean))
+  ) |>
+  unnest(estimate_df) |> 
+  unnest(estimate_df) 
+```
+
+#### Plot
+
+```{r}
+power_plot_df = 
+  results_df |>
+  select(population_mean, estimate, p.value) |>
+  group_by(population_mean) |>
+  summarize(n_obs = n()) |>
+  mutate(props = round(n_obs / sum(n_obs), 2)) |>
+  ggplot(aes(x = population_mean, y = props)) +
+  geom_point() +
+  labs(
+    title = "Effect size and power",
+    x = "True value of μ",
+    y = "Power of test"
+  )
+
+power_plot_df
+```
+
 
 
