@@ -11,6 +11,38 @@ library(rvest)
 library(purrr)
 ```
 
+### Problem 1
+#### Read data
+```{r}
+homicide_raw = 
+  read_csv("./homicide-data.csv") |> 
+  janitor::clean_names()
+```
+the `homicide_raw` has `r nrow(homicide_raw)` observations and `r ncol(homicide_raw)` variables.
+
+```{r}
+# total number of homicides 
+homicide_raw |> 
+  mutate(city_state = paste(city, state, sep = ", ")) |> 
+  group_by(city_state) |> 
+  summarize(n()) 
+
+# the number of unsolved homicides 
+homicide_df = 
+  homicide_raw |> 
+  mutate(city_state = paste(city, state, sep = ", "),
+         disposition = 
+           ifelse(disposition %in% c("Closed without arrest", "Open/No arrest"), "unsolved", "solved")
+         )|> 
+  group_by(city_state, disposition)  |> 
+  summarize(obs = n()) |> 
+  pivot_wider(
+    names_from = disposition, 
+    values_from = obs) |> 
+  summarize(unsolved)
+```
+
+
 ### Peoblem 2
 #### Import Data
 
